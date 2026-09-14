@@ -1,56 +1,172 @@
 module Control_Unit (
-    input  [3:0] opcode,
+    input  [6:0] opcode,
+    input  [2:0] funct3,
+    input        funct7,
+    input        Zero,
+    input        sign_flag,
+
     output reg [2:0] ALUControl,
     output reg       ALUSrc,
     output reg       RegWrite,
     output reg       MemWrite,
-    output reg       Branch,
-    output reg       Jump,
+    output reg       PCSrc,
     output reg       ResultSrc,
     output reg [1:0] ImmSrc
 );
-    // ISA:
-    // 0 ADD, 1 SUB, 2 AND, 3 OR, 4 XOR, 5 SLL, 6 SRL
-    // 7 ADDI, 8 LOAD, 9 STORE, A BEQ, B JMP
 
-    always @(*) begin
-        ALUControl = 3'b000;
-        ALUSrc     = 1'b0;
-        RegWrite   = 1'b0;
-        MemWrite   = 1'b0;
-        Branch     = 1'b0;
-        Jump       = 1'b0;
-        ResultSrc  = 1'b0;
-        ImmSrc     = 2'b00;
+reg [1:0] ALUOp;
+reg       Branch;
 
-        case (opcode)
-            4'h0: begin ALUControl=3'b000; RegWrite=1'b1; end // ADD
-            4'h1: begin ALUControl=3'b001; RegWrite=1'b1; end // SUB
-            4'h2: begin ALUControl=3'b010; RegWrite=1'b1; end // AND
-            4'h3: begin ALUControl=3'b011; RegWrite=1'b1; end // OR
-            4'h4: begin ALUControl=3'b100; RegWrite=1'b1; end // XOR
-            4'h5: begin ALUControl=3'b101; RegWrite=1'b1; end // SLL
-            4'h6: begin ALUControl=3'b110; RegWrite=1'b1; end // SRL
+always @(*) begin
 
-            4'h7: begin // ADDI
-                ALUControl=3'b000; ALUSrc=1'b1;
-                RegWrite=1'b1; ImmSrc=2'b00;
-            end
-            4'h8: begin // LOAD
-                ALUControl=3'b000; ALUSrc=1'b1;
-                RegWrite=1'b1; ResultSrc=1'b1; ImmSrc=2'b00;
-            end
-            4'h9: begin // STORE
-                ALUControl=3'b000; ALUSrc=1'b1;
-                MemWrite=1'b1; ImmSrc=2'b01;
-            end
-            4'hA: begin // BEQ
-                ALUControl=3'b001; Branch=1'b1; ImmSrc=2'b10;
-            end
-            4'hB: begin // JMP
-                Jump=1'b1; ImmSrc=2'b11;
-            end
-            default: begin end
-        endcase
-    end
+    // Default values
+    RegWrite = 1'b0;
+    ImmSrc   = 2'b00;
+    ALUSrc   = 1'b0;
+    MemWrite = 1'b0;
+    ResultSrc = 1'b0;
+    Branch   = 1'b0;
+    ALUOp    = 2'b00;
+
+    case (opcode)
+
+        // LOAD
+        7'b0000011: begin
+            RegWrite  = 1'b1;
+            ImmSrc    = 2'b00;
+            ALUSrc    = 1'b1;
+            MemWrite  = 1'b0;
+            ResultSrc = 1'b1;
+            Branch    = 1'b0;
+            ALUOp     = 2'b00;
+        end
+
+        // STORE
+        7'b0100011: begin
+            RegWrite  = 1'b0;
+            ImmSrc    = 2'b01;
+            ALUSrc    = 1'b1;
+            MemWrite  = 1'b1;
+            ResultSrc = 1'b0;
+            Branch    = 1'b0;
+            ALUOp     = 2'b00;
+        end
+
+        // R-Type
+        7'b0110011: begin
+            RegWrite  = 1'b1;
+            ImmSrc    = 2'b00;
+            ALUSrc    = 1'b0;
+            MemWrite  = 1'b0;
+            ResultSrc = 1'b0;
+            Branch    = 1'b0;
+            ALUOp     = 2'b10;
+        end
+
+        // I-Type
+        7'b0010011: begin
+            RegWrite  = 1'b1;
+            ImmSrc    = 2'b00;
+            ALUSrc    = 1'b1;
+            MemWrite  = 1'b0;
+            ResultSrc = 1'b0;
+            Branch    = 1'b0;
+            ALUOp     = 2'b10;
+        end
+
+        // BRANCH
+        7'b1100011: begin
+            RegWrite  = 1'b0;
+            ImmSrc    = 2'b10;
+            ALUSrc    = 1'b0;
+            MemWrite  = 1'b0;
+            ResultSrc = 1'b0;
+            Branch    = 1'b1;
+            ALUOp     = 2'b01;
+        end
+
+        default: begin
+            RegWrite  = 1'b0;
+            ImmSrc    = 2'b00;
+            ALUSrc    = 1'b0;
+            MemWrite  = 1'b0;
+            ResultSrc = 1'b0;
+            Branch    = 1'b0;
+            ALUOp     = 2'b00;
+        end
+
+    endcase
+end
+
+
+// Branch control
+always @(*) begin
+
+    case (funct3)
+
+        3'b000: PCSrc = Branch & Zero;        // BEQ
+        3'b001: PCSrc = Branch & ~Zero;       // BNE
+        3'b100: PCSrc = Branch & sign_flag;  // BLT
+
+        default: PCSrc = 1'b0;
+
+    endcase
+
+end
+
+
+// ALU control
+always @(*) begin
+
+    case (ALUOp)
+
+        // ADD
+        2'b00:
+            ALUControl = 3'b000;
+
+        // SUB
+        2'b01:
+            ALUControl = 3'b010;
+
+        // R-Type / I-Type
+        2'b10: begin
+
+            case (funct3)
+
+                3'b000: begin
+                    if (funct7)
+                        ALUControl = 3'b010; // SUB
+                    else
+                        ALUControl = 3'b000; // ADD
+                end
+
+                3'b001:
+                    ALUControl = 3'b001; // SLL
+
+                3'b100:
+                    ALUControl = 3'b100; // XOR
+
+                3'b101:
+                    ALUControl = 3'b101; // SRL
+
+                3'b110:
+                    ALUControl = 3'b110; // OR
+
+                3'b111:
+                    ALUControl = 3'b111; // AND
+
+                default:
+                    ALUControl = 3'b000;
+
+            endcase
+
+        end
+
+        default:
+            ALUControl = 3'b000;
+
+    endcase
+
+end
+
 endmodule
