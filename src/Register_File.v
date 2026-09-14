@@ -17,7 +17,7 @@ module Register_File (
     output [31:0] ReadRegData
 );
 
-reg [31:0] mem [0:15];
+    reg [31:0] mem [0:15];
 
 integer i;
 
