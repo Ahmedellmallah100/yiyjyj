@@ -1,0 +1,29 @@
+// 16-bit instructions, one hex word per line.
+// Encoding:
+// R-type: [15:12]=op, [11:9]=rd, [8:6]=rs1, [5:3]=rs2
+// I-type: [15:12]=op, [11:9]=rd, [8:6]=rs1, [5:0]=imm
+// STORE:  [15:12]=9,  [11:9]=rs1, [8:6]=rs2, [5:0]=imm
+// BEQ:    [15:12]=A,  [11:9]=rs1, [8:6]=rs2, [5:0]=offset
+// JMP:    [15:12]=B,  [4:0]=absolute target
+//
+// Example program:
+// R1 = 5
+// R2 = 3
+// R3 = R1 + R2
+// MEM[0] = R3
+//
+// 7 08 05  -> ADDI R1,R0,5  = 0x7205
+// 7 10 03  -> ADDI R2,R0,3  = 0x7403
+// 0 18 08  -> ADD  R3,R1,R2 = 0x0CA8
+// 9 60 00  -> STORE MEM[R3+0], R3 (address uses R3) 
+// The last example is illustrative; customize according to your test.
+//
+// Safe initial program:
+// ADDI R1,R0,5
+// ADDI R2,R0,3
+// ADD  R3,R1,R2
+// JMP 3
+7205
+7403
+0CA8
+B003
