@@ -24,7 +24,6 @@ project:
     - "Register_File.v"
     - "Mux.v"
     - "ALU.v"
-    - "Data_Memory.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 pinout:
