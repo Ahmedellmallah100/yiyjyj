@@ -1,3 +1,5 @@
+
+Top · V
 module riscv_core (
     input         clk,
     input         areset,
@@ -5,7 +7,7 @@ module riscv_core (
     input  [4:0]  InstrAddr,
     input         Execute,
 
-    input  [4:0]  ReadRegAddr,
+    input  [3:0]  ReadRegAddr,
 
     output [31:0] Instruction,
     output [31:0] ALUResult,
@@ -116,9 +118,9 @@ Register_File rf_inst (
     .clk(clk),
     .areset(areset),
 
-    .A1(Rs1),
-    .A2(Rs2),
-    .A3(Rd),
+    .A1(Rs1[3:0]),
+    .A2(Rs2[3:0]),
+    .A3(Rd[3:0]),
 
     .ReadRegAddr(ReadRegAddr),
 
@@ -194,3 +196,4 @@ Mux result_mux_inst (
 assign MemoryData = RD;
 
 endmodule
+ 
