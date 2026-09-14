@@ -1,5 +1,3 @@
-
-Top · V
 module riscv_core (
     input         clk,
     input         areset,
